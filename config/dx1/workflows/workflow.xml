@@ -1,0 +1,208 @@
+<workflow name="%System%_%Source%_Workflow">
+    <!-- declare workflow variables -->
+    <!-- remote dataset path variables -->
+    <variable name="remoteFilePathRegexPattern" value="*"/>
+    <variable name="remoteDatasetRootPath" value="/dat/septa/theatrain/dataexplorers"/>
+    <!-- credentials path variables -->
+    <variable name="credentialsRootPath" value="%DataPathDrive%\Credentials"/>
+    <!-- local dataset path variables -->
+    <variable name="localDatasetRootPath" value="%DataPath%\%DatasetName%"/>
+    <variable name="logPath" value="%DataPath%\%DatasetName%\log"/>
+    <variable name="tempPath" value="%DataPath%\%DatasetName%\temp"/>
+    <variable name="syncingPath" value="%DataPath%\%DatasetName%\data\syncing"/>
+    <variable name="processingPath" value="%DataPath%\%DatasetName%\data\processing"/>
+    <variable name="incomingPath" value="%DataPath%\%DatasetName%\data\incoming"/>
+    <variable name="workingPath" value="%DataPath%\%DatasetName%\data\working"/>
+    <variable name="archivePath" value="%DataPath%\%DatasetName%\data\archive"/>
+    <!-- PowerShell variables -->
+    <variable name="emailToNameList" value="Reid Frasier"/>
+    <variable name="emailToAddressList" value="Reid.Frasier@mlp.com"/>
+    <variable name="extraOptions" value="-Recurse"/>
+    <!-- semicolon separated paths to concatenate to the PowerShell module path environment variable -->
+    <variable name="addToPowerShellModulePath" value=";C:\Users\rfrasier\Documents\WindowsPowerShell\Modules;"/>
+    <!-- PowerShell module names -->
+    <variable name="credentialsModule" value="Credentials"/>
+    <variable name="credentialsModuleVersion" value="1.0"/>
+    <variable name="winSCPModule" value="WinSCP"/>
+    <variable name="winSCPModuleVersion" value="5.8.2.0"/>
+    <variable name="winixModule" value="WinZip"/>
+    <variable name="winixModuleVersion" value="1.0"/>
+    <variable name="winZipModule" value="Winix"/>
+    <variable name="winZipModuleVersion" value="1.0"/>
+    <!-- specify a proxy name for PowerShell in order to run scripts as a proxy, which is mapped to a credential in SQL Server -->
+    <variable name="powerShellProxyName" value="RFrasier"/>
+    <!-- commands that must be at the beginning and ending of a script in order to start a PowerShell Version 4 session and script block -->
+    <variable name="startPowerShellSession" value="$PowerShellVersion4 = PowerShell {"/>
+    <variable name="endPowerShellSession" value="}"/>
+    <!-- enumeration of on_success_action codes -->
+    <variable name="quitWithSuccess" value="1"/>
+    <variable name="quitWithFailure" value="2"/>
+    <variable name="goToTheNextStep" value="3"/>
+    <variable name="goToStepWithId" value="4"/>
+    <!-- specify a query timeout if needed for the bulk insert, otherwise leave 0 for no timeout (0 only works in 2012 and later) -->
+    <variable name="queryTimeout" value="0"/>
+    <!-- common parameters that all jobs need for logging to metadata -->
+    <variable name="parameters" value="@agentJobId = $(ESCAPE_NONE(JOBID)), @agentStepId = $(ESCAPE_NONE(STEPID))"/>
+    <job name="%System%_%Source%_Extracting">
+        <!-- declare job variables -->
+        <variable name="credentialsFileName" value="rfrasier.xml"/>
+        <variable name="remoteServerHostName" value="wqnfs4tk1.mlp.com"/>
+        <variable name="winScpProtocol" value="Sftp"/>
+        <variable name="winScpSessionTimeout" value="20"/>
+        <variable name="winScpSyncMode" value="Local"/>
+        <variable name="winScpSyncCriteria" value="Time"/>
+        <jobstep name="Sync local files with remote server" subsystem="PowerShell" proxy_name="%powerShellProxyName%" on_success_action="%goToTheNextStep%">
+            %startPowerShellSession%
+              # set session environment variables
+              $env:PSModulePath = $env:PSModulePath + "%addToPowerShellModulePath%"
+              # import modules
+              Import-Module -Name "%credentialsModule%" -RequiredVersion "%credentialsModuleVersion%"
+              Import-Module -Name "%winSCPModule%" -RequiredVersion "%winSCPModuleVersion%"
+              Import-Module -Name "%winixModule%" -RequiredVersion "%winixModuleVersion%"
+              Import-Module -Name "%winZipModule%" -RequiredVersion "%winZipModuleVersion%"
+              # get credential
+              $credential = Import-Credential -Path "%credentialsRootPath%\%credentialsFileName%"
+              # connect to remote server
+              $session = New-WinSCPSession -Protocol "%winScpProtocol%" -HostName "%remoteServerHostName%" -Credential $credential -GiveUpSecurityAndAcceptAnySshHostKey
+              # set session timeout
+              $session.Timeout = New-TimeSpan -Minutes %winScpSessionTimeout%
+              # initialize job step object
+              $jobStep = New-Object -TypeName "System.Management.Automation.PSObject"
+              $jobStep | Add-Member -MemberType "NoteProperty" -Name "ResultsType" -Value "Sync"
+              $jobStep | Add-Member -MemberType "NoteProperty" -Name "StartTime" -Value (Get-Date)
+              $jobStep | Add-Member -MemberType "NoteProperty" -Name "EndTime" -Value $null
+              $jobStep | Add-Member -MemberType "NoteProperty" -Name "IsSuccess" -Value $false
+              $jobStep | Add-Member -MemberType "NoteProperty" -Name "Results" -Value $null
+              try {
+                # start sync
+                $syncResults = Sync-WinixParsedPath -WinSCPSession $session -Mode "%winScpSyncMode%" -Criteria "%winScpSyncCriteria%" -RemotePath "%remoteDatasetRootPath%" -LocalPath "%syncingPath%" -RemoteRootPath "%remoteDatasetRootPath%" -LocalRootPath "%syncingPath%"
+                # set properties
+                $jobStep.EndTime = (Get-Date)
+                $jobStep.IsSuccess = $true
+                $jobStep.Results = $syncResults
+              }
+              catch {
+                # write error
+                Write-Error -Message "Sync failed"
+                # set properties
+                $jobStep.EndTime = (Get-Date)
+                $jobStep.IsSuccess = $false
+              }
+              # set xml file path
+              $xmlFilePath = Join-Path -Path "%tempPath%" -ChildPath "%System%_%Source%_Extracting.xml"
+              # export job step object
+              Export-Clixml -InputObject $jobStep -LiteralPath $xmlFilePath -Force
+              # send notification email
+              # disconnect from remote server
+              Remove-WinSCPSession -WinSCPSession $session
+            %endPowerShellSession%
+        </jobstep>
+        <jobstep name="Process synced files" subsystem="PowerShell" proxy_name="%powerShellProxyName%" on_success_action="%goToTheNextStep%">
+            %startPowerShellSession%
+              # get xml file path
+              $xmlFilePath = Join-Path -Path "%tempPath%" -ChildPath "%System%_%Source%_Extracting.xml"
+              # check if xml file exists
+              if (Test-Path -Path $xmlFilePath -PathType "Leaf") {
+                # import job step object
+                $jobStepInfo = Import-Clixml -LiteralPath $xmlFilePath
+              }
+              else {
+                Throw "Sync job step xml file $($xmlFilePath) does not exist."
+              }
+              # check if prior job step did not succeed
+              if (-not $jobStepInfo.IsSuccess) {
+                Throw "Prior sync job step did not succeed. It must be completed successfully before the workflow can continue."
+              }
+              # get prior job step results
+              $jobStepResults = $jobStepInfo.Results
+              # iterate through job step results
+              foreach ($syncResult in $syncResults) {
+                # check if file was synced
+                if ($syncResult.IsSuccess) {
+
+                }
+              }
+            %endPowerShellSession%
+        </jobstep>
+    </job>
+    <job name="%System%_%Source%_Staging">
+        <jobstep name="Check for and move files" subsystem="PowerShell" proxy_name="%powerShellProxyName%" on_success_action="%goToTheNextStep%">
+            %startPowerShellSession%
+              $files = Get-ChildItem -Path "%incomingPath%" | Where-Object {$_.Name -match "%remoteFilePathRegexPattern%"}
+              If ($files.Length -eq 0) {
+                Throw "No matching files were found in %incomingPath%"
+              }
+              Else {
+                ForEach ($file in $files) {
+                  $fullFileName = $file.FullName
+                  Move-Item -Path $fullFileName -Destination "%workingPath%" -Force
+                  Write-Output "Moved file: $fullFileName to %workingPath%"
+                }
+              }
+            %endPowerShellSession%
+        </jobstep>
+        <jobstep name="Create raw table" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_CreateRawTable %parameters%
+        </jobstep>
+        <!-- replace the above job step with the following one when using 'bulk' splitting -->
+        <!--
+        <jobstep name="Create raw split table" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_CreateRawSplitTable %parameters%
+        </jobstep>
+        -->
+        <jobstep name="Create insert view" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_CreateInsertView %parameters%
+        </jobstep>
+        <jobstep name="Bulk insert" database_name="%SourceDatabase%" subsystem="PowerShell" proxy_name="%powerShellProxyName%" on_success_action="%goToTheNextStep%">
+            %startPowerShellSession%
+              $files = Get-ChildItem -Path "%workingPath%" %extraOptions% | Where-Object {$_.Name -match "%remoteFilePathRegexPattern%"}
+              If ($files.Length -eq 0) {
+                Throw "No matching files were found in %workingPath%"
+              }
+              Else {
+                ForEach ($file in $files) {
+                  $fullFileName = $file.FullName
+                  $modifiedDate = $file.LastWriteTime
+                  Invoke-Sqlcmd "EXEC %SourceSchema%.%System%_%Source%_BulkInsert `"$fullFileName`", `"$modifiedDate`", %parameters%" -Database "%SourceDatabase%" -ErrorAction Stop -QueryTimeout %queryTimeout%
+                  Write-Output "Loaded file: $fullFileName"
+                  Move-Item -Path $fullFileName -Destination "%archivePath%" -Force
+                  Write-Output "Moved file: $fullFileName to %archivePath%"
+                }
+              }
+            %endPowerShellSession%
+        </jobstep>
+        <jobstep name="Create split views" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_CreateSplitViews %parameters%
+        </jobstep>
+        <jobstep name="Create error views" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_CreateErrorViews %parameters%
+        </jobstep>
+        <jobstep name="Create typed tables" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_CreateTypedTables %parameters%
+        </jobstep>
+        <jobstep name="Split raw into typed" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.%System%_%Source%_SplitRawIntoTyped %parameters%
+        </jobstep>
+        <jobstep name="Add keys to typed" database_name="%SourceDatabase%" subsystem="TSQL">
+            EXEC %SourceSchema%.%System%_%Source%_AddKeysToTyped %parameters%
+        </jobstep>
+    </job>
+    <job name="%System%_%Source%_Loading">
+        <!-- ST_Street -->
+        <jobstep name="Load streets" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.[lST_Street__%System%_%Source%_Collision_Typed] %parameters%
+        </jobstep>
+        <!-- IS_Intersection pass 1 -->
+        <jobstep name="Load intersection pass 1" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.[lIS_Intersection__%System%_%Source%_Collision_Typed__1] %parameters%
+        </jobstep>
+        <!-- ST_intersecting_IS_of_ST_crossing -->
+        <jobstep name="Load ST ST IS tie" database_name="%SourceDatabase%" subsystem="TSQL" on_success_action="%goToTheNextStep%">
+            EXEC %SourceSchema%.[lST_intersecting_IS_of_ST_crossing__%System%_%Source%_Collision_Typed] %parameters%
+        </jobstep>
+        <!-- IS_Intersection pass 2 -->
+        <jobstep name="Load intersection pass 2" database_name="%SourceDatabase%" subsystem="TSQL">
+            EXEC %SourceSchema%.[lIS_Intersection__%System%_%Source%_Collision_Typed__2] %parameters%
+        </jobstep>
+    </job>
+</workflow>

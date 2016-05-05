@@ -1,23 +1,18 @@
-USE Stage;
-GO
 -- create schema if it does not exist
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'etl')
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'dbo')
 BEGIN
-    EXEC( 'CREATE SCHEMA etl' );
+    EXEC( 'CREATE SCHEMA dbo' );
 END
 GO
 -- creates utility functions needed in the staging
-IF Object_Id('etl.Splitter', 'FT') IS NOT NULL
-DROP FUNCTION [etl].[Splitter];
+IF Object_Id('dbo.Splitter', 'FT') IS NOT NULL
+DROP FUNCTION [dbo].[Splitter];
 GO
-IF Object_Id('etl.IsType', 'FS') IS NOT NULL
-DROP FUNCTION [etl].[IsType];
+IF Object_Id('dbo.IsType', 'FS') IS NOT NULL
+DROP FUNCTION [dbo].[IsType];
 GO
-IF Object_Id('etl.ColumnSplitter', 'PC') IS NOT NULL
-DROP PROCEDURE [etl].[ColumnSplitter];
-GO
-IF Object_Id('etl.ToLocalTime', 'FS') IS NOT NULL
-DROP FUNCTION [etl].[ToLocalTime];
+IF Object_Id('dbo.ColumnSplitter', 'PC') IS NOT NULL
+DROP PROCEDURE [dbo].[ColumnSplitter];
 GO
 IF EXISTS (
 	SELECT
@@ -25,21 +20,21 @@ IF EXISTS (
 	FROM
 		sys.assemblies
 	WHERE
-		name = 'etlUtilities'
+		name = 'dboUtilities'
 )
-DROP ASSEMBLY etlUtilities;
+DROP ASSEMBLY dboUtilities;
 IF NOT EXISTS (
 	SELECT
 		*
 	FROM
 		sys.assemblies
 	WHERE
-		name = 'etlUtilities'
+		name = 'dboUtilities'
 )
 BEGIN TRY -- using Microsoft.SQLServer.Types version 13 (2016)
-	CREATE ASSEMBLY etlUtilities
+	CREATE ASSEMBLY dboUtilities
 	AUTHORIZATION dbo
-	FROM 'C:\sisula\code\Utilities2016.dll'
+	FROM 'undefinedcode\Utilities2016.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2016 was installed.'
 END TRY
@@ -52,12 +47,12 @@ IF NOT EXISTS (
 	FROM
 		sys.assemblies
 	WHERE
-		name = 'etlUtilities'
+		name = 'dboUtilities'
 )
 BEGIN TRY -- using Microsoft.SQLServer.Types version 12 (2014)
-	CREATE ASSEMBLY etlUtilities
+	CREATE ASSEMBLY dboUtilities
 	AUTHORIZATION dbo
-	FROM 'C:\sisula\code\Utilities2014.dll'
+	FROM 'undefinedcode\Utilities2014.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2014 was installed.'
 END TRY
@@ -70,12 +65,12 @@ IF NOT EXISTS (
 	FROM
 		sys.assemblies
 	WHERE
-		name = 'etlUtilities'
+		name = 'dboUtilities'
 )
 BEGIN TRY -- using Microsoft.SQLServer.Types version 11 (2012)
-	CREATE ASSEMBLY etlUtilities
+	CREATE ASSEMBLY dboUtilities
 	AUTHORIZATION dbo
-	FROM 'C:\sisula\code\Utilities2012.dll'
+	FROM 'undefinedcode\Utilities2012.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2012 was installed.'
 END TRY
@@ -88,12 +83,12 @@ IF NOT EXISTS (
 	FROM
 		sys.assemblies
 	WHERE
-		name = 'etlUtilities'
+		name = 'dboUtilities'
 )
 BEGIN TRY -- using Microsoft.SQLServer.Types version 10 (2008)
-	CREATE ASSEMBLY etlUtilities
+	CREATE ASSEMBLY dboUtilities
 	AUTHORIZATION dbo
-	FROM 'C:\sisula\code\Utilities2008.dll'
+	FROM 'undefinedcode\Utilities2008.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2008 was installed.'
 END TRY
@@ -101,27 +96,23 @@ BEGIN CATCH
 	PRINT 'The .NET CLR for SQL Server 2008 was NOT installed.'
 END CATCH
 GO
-CREATE FUNCTION [etl].Splitter(@row AS nvarchar(max), @pattern AS nvarchar(4000))
+CREATE FUNCTION [dbo].Splitter(@row AS nvarchar(max), @pattern AS nvarchar(4000))
 RETURNS TABLE (
 	[match] nvarchar(max),
 	[index] int
-) AS EXTERNAL NAME etlUtilities.Splitter.InitMethod;
+) AS EXTERNAL NAME dboUtilities.Splitter.InitMethod;
 GO
-CREATE FUNCTION [etl].IsType(@dataValue AS nvarchar(max), @dataType AS nvarchar(4000))
-RETURNS bit
-AS EXTERNAL NAME etlUtilities.IsType.InitMethod;
+CREATE FUNCTION [dbo].IsType(@dataValue AS nvarchar(max), @dataType AS nvarchar(4000))
+RETURNS BIT
+AS EXTERNAL NAME dboUtilities.IsType.InitMethod;
 GO
-CREATE FUNCTION [etl].ToLocalTime(@sqlDatetime AS datetime)
-RETURNS datetime
-AS EXTERNAL NAME etlUtilities.ToLocalTime.InitMethod;
-GO
-CREATE PROCEDURE [etl].ColumnSplitter(
+CREATE PROCEDURE [dbo].ColumnSplitter(
 	@table AS nvarchar(4000),
 	@column AS nvarchar(4000),
 	@pattern AS nvarchar(4000),
 	@includeColumns AS nvarchar(4000) = null
 )
-AS EXTERNAL NAME etlUtilities.ColumnSplitter.InitMethod;
+AS EXTERNAL NAME dboUtilities.ColumnSplitter.InitMethod;
 GO
 IF NOT EXISTS (
     SELECT value
@@ -134,11 +125,11 @@ BEGIN
     reconfigure with override;
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_CreateRawTable', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_CreateRawTable];
+IF Object_ID('dbo.%Source%_CreateRawTable', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_CreateRawTable];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_CreateRawTable
+-- Procedure: %Source%_CreateRawTable
 --
 -- This table holds the 'raw' loaded data.
 --
@@ -157,10 +148,10 @@ GO
 -- _timestamp
 -- The time the row was created.
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_CreateRawTable] (
+CREATE PROCEDURE [dbo].[%Source%_CreateRawTable] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -174,23 +165,23 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_CreateRawTable',
+    @name = '%Source%_CreateRawTable',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Raw', 'U') IS NOT NULL
-    DROP TABLE [etl].[NYPD_Vehicle_Raw];
-    CREATE TABLE [etl].[NYPD_Vehicle_Raw] (
+    IF Object_ID('dbo.%Source%_Raw', 'U') IS NOT NULL
+    DROP TABLE [dbo].[%Source%_Raw];
+    CREATE TABLE [dbo].[%Source%_Raw] (
         _id int identity(1,1) not null,
         _file AS metadata_CO_ID, -- keep an alias for backwards compatibility
         metadata_CO_ID int not null default 0,
         metadata_JB_ID int not null default 0,
         _timestamp datetime not null default getdate(),
         [row] varchar(1000), 
-        constraint [pketl_NYPD_Vehicle_Raw] primary key(
+        constraint [pkdbo_%Source%_Raw] primary key(
             _id asc
         )
     );
@@ -216,20 +207,20 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_CreateInsertView', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_CreateInsertView];
+IF Object_ID('dbo.%Source%_CreateInsertView', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_CreateInsertView];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_CreateInsertView
+-- Procedure: %Source%_CreateInsertView
 --
 -- This view is created as exposing the single column that will be
 -- the target of the BULK INSERT operation, since it cannot insert
 -- into a table with multiple columns without a format file.
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_CreateInsertView] (
+CREATE PROCEDURE [dbo].[%Source%_CreateInsertView] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -243,22 +234,22 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_CreateInsertView',
+    @name = '%Source%_CreateInsertView',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Insert', 'V') IS NOT NULL
-    DROP VIEW [etl].[NYPD_Vehicle_Insert];
+    IF Object_ID('dbo.%Source%_Insert', 'V') IS NOT NULL
+    DROP VIEW [dbo].[%Source%_Insert];
     EXEC('
-    CREATE VIEW [etl].[NYPD_Vehicle_Insert]
+    CREATE VIEW [dbo].[%Source%_Insert]
     AS
     SELECT
         [row]
     FROM
-        [etl].[NYPD_Vehicle_Raw];
+        [dbo].[%Source%_Raw];
     ');
     EXEC Stage.metadata._WorkStopping @workId, 'Success';
 END TRY
@@ -282,24 +273,24 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_BulkInsert', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_BulkInsert];
+IF Object_ID('dbo.%Source%_BulkInsert', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_BulkInsert];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_BulkInsert
+-- Procedure: %Source%_BulkInsert
 --
 -- This procedure performs a BULK INSERT of the given filename into
--- the NYPD_Vehicle_Insert view. The file is loaded row by row
+-- the %Source%_Insert view. The file is loaded row by row
 -- into a single column holding the entire row. This ensures that no
 -- data is lost when loading.
 --
 -- This job may called multiple times in a workflow when more than
 -- one file matching a given filename pattern is found.
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_BulkInsert] (
+CREATE PROCEDURE [dbo].[%Source%_BulkInsert] (
 	@filename varchar(2000),
     @lastModified datetime,
     @agentJobId uniqueidentifier = null,
@@ -319,10 +310,10 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_BulkInsert',
+    @name = '%Source%_BulkInsert',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
@@ -330,15 +321,15 @@ EXEC Stage.metadata._WorkSourceToTarget
     @OP_ID = @operationsId OUTPUT,
     @WO_ID = @workId, 
     @sourceName = @filename, 
-    @targetName = 'NYPD_Vehicle_Insert', 
+    @targetName = '%Source%_Insert', 
     @sourceType = 'File', 
     @targetType = 'View', 
     @sourceCreated = @lastModified, 
     @targetCreated = DEFAULT;
-    IF Object_ID('etl.NYPD_Vehicle_Insert', 'V') IS NOT NULL
+    IF Object_ID('dbo.%Source%_Insert', 'V') IS NOT NULL
     BEGIN
     EXEC('
-        BULK INSERT [etl].[NYPD_Vehicle_Insert]
+        BULK INSERT [dbo].[%Source%_Insert]
         FROM ''' + @filename + '''
         WITH (
             CODEPAGE = ''ACP'',
@@ -374,7 +365,7 @@ EXEC Stage.metadata._WorkSourceToTarget
         WHERE
             wojb.WO_ID_part = @workId
     ), 0);
-    UPDATE [etl].[NYPD_Vehicle_Raw]
+    UPDATE [dbo].[%Source%_Raw]
     SET
     metadata_CO_ID =
       case when metadata_CO_ID = 0 then @CO_ID else metadata_CO_ID end,
@@ -405,11 +396,11 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_CreateSplitViews', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_CreateSplitViews];
+IF Object_ID('dbo.%Source%_CreateSplitViews', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_CreateSplitViews];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_CreateSplitViews
+-- Procedure: %Source%_CreateSplitViews
 --
 -- The split view uses a CLR called the Splitter to split rows in the
 -- 'raw' table into columns. The Splitter uses a regular expression in
@@ -422,13 +413,13 @@ GO
 -- If keys are defined, these keys are checked for duplicates and the
 -- duplicate number can be found through the view.
 --
--- Create: NYPD_Vehicle_Collision_Split
--- Create: NYPD_Vehicle_CollisionMetadata_Split
+-- Create: %Source%_Collision_Split
+-- Create: %Source%_CollisionMetadata_Split
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_CreateSplitViews] (
+CREATE PROCEDURE [dbo].[%Source%_CreateSplitViews] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -442,17 +433,17 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_CreateSplitViews',
+    @name = '%Source%_CreateSplitViews',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Collision_Split', 'V') IS NOT NULL
-    DROP VIEW [etl].[NYPD_Vehicle_Collision_Split];
+    IF Object_ID('dbo.%Source%_Collision_Split', 'V') IS NOT NULL
+    DROP VIEW [dbo].[%Source%_Collision_Split];
     EXEC('
-    CREATE VIEW [etl].[NYPD_Vehicle_Collision_Split]
+    CREATE VIEW [dbo].[%Source%_Collision_Split]
     AS
     SELECT
         t._id,
@@ -462,55 +453,55 @@ BEGIN TRY
         m.[OccurrencePrecinctCode] as [OccurrencePrecinctCode_Match],
         t.[OccurrencePrecinctCode],
         CASE
-            WHEN t.[OccurrencePrecinctCode] is not null AND [etl].IsType(t.[OccurrencePrecinctCode], ''int'') = 0 THEN ''Conversion to int failed''
+            WHEN t.[OccurrencePrecinctCode] is not null AND [dbo].IsType(t.[OccurrencePrecinctCode], ''int'') = 0 THEN ''Conversion to int failed''
         END AS [OccurrencePrecinctCode_Error],
         m.[CollisionID] as [CollisionID_Match],
         t.[CollisionID],
         CASE
-            WHEN t.[CollisionID] is not null AND [etl].IsType(t.[CollisionID], ''int'') = 0 THEN ''Conversion to int failed''
+            WHEN t.[CollisionID] is not null AND [dbo].IsType(t.[CollisionID], ''int'') = 0 THEN ''Conversion to int failed''
         END AS [CollisionID_Error],
         m.[CollisionKey] as [CollisionKey_Match],
         t.[CollisionKey],
         CASE
-            WHEN t.[CollisionKey] is not null AND [etl].IsType(t.[CollisionKey], ''int'') = 0 THEN ''Conversion to int failed''
+            WHEN t.[CollisionKey] is not null AND [dbo].IsType(t.[CollisionKey], ''int'') = 0 THEN ''Conversion to int failed''
         END AS [CollisionKey_Error],
         m.[CollisionOrder] as [CollisionOrder_Match],
         t.[CollisionOrder],
         CASE
             WHEN t.[CollisionOrder] is null THEN ''Null value not allowed''
-            WHEN t.[CollisionOrder] is not null AND [etl].IsType(t.[CollisionOrder], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
+            WHEN t.[CollisionOrder] is not null AND [dbo].IsType(t.[CollisionOrder], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
         END AS [CollisionOrder_Error],
         m.[IntersectionAddress] as [IntersectionAddress_Match],
         t.[IntersectionAddress],
         CASE
-            WHEN t.[IntersectionAddress] is not null AND [etl].IsType(t.[IntersectionAddress], ''varchar(321)'') = 0 THEN ''Conversion to varchar(321) failed''
+            WHEN t.[IntersectionAddress] is not null AND [dbo].IsType(t.[IntersectionAddress], ''varchar(321)'') = 0 THEN ''Conversion to varchar(321) failed''
         END AS [IntersectionAddress_Error],
         m.[IntersectingStreet] as [IntersectingStreet_Match],
         t.[IntersectingStreet],
         CASE
             WHEN t.[IntersectingStreet] is null THEN ''Null value not allowed''
-            WHEN t.[IntersectingStreet] is not null AND [etl].IsType(t.[IntersectingStreet], ''varchar(321)'') = 0 THEN ''Conversion to varchar(321) failed''
+            WHEN t.[IntersectingStreet] is not null AND [dbo].IsType(t.[IntersectingStreet], ''varchar(321)'') = 0 THEN ''Conversion to varchar(321) failed''
         END AS [IntersectingStreet_Error],
         m.[CrossStreet] as [CrossStreet_Match],
         t.[CrossStreet],
         CASE
             WHEN t.[CrossStreet] is null THEN ''Null value not allowed''
-            WHEN t.[CrossStreet] is not null AND [etl].IsType(t.[CrossStreet], ''varchar(321)'') = 0 THEN ''Conversion to varchar(321) failed''
+            WHEN t.[CrossStreet] is not null AND [dbo].IsType(t.[CrossStreet], ''varchar(321)'') = 0 THEN ''Conversion to varchar(321) failed''
         END AS [CrossStreet_Error],
         m.[CollisionVehicleCount] as [CollisionVehicleCount_Match],
         t.[CollisionVehicleCount],
         CASE
-            WHEN t.[CollisionVehicleCount] is not null AND [etl].IsType(t.[CollisionVehicleCount], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
+            WHEN t.[CollisionVehicleCount] is not null AND [dbo].IsType(t.[CollisionVehicleCount], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
         END AS [CollisionVehicleCount_Error],
         m.[CollisionInjuredCount] as [CollisionInjuredCount_Match],
         t.[CollisionInjuredCount],
         CASE
-            WHEN t.[CollisionInjuredCount] is not null AND [etl].IsType(t.[CollisionInjuredCount], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
+            WHEN t.[CollisionInjuredCount] is not null AND [dbo].IsType(t.[CollisionInjuredCount], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
         END AS [CollisionInjuredCount_Error],
         m.[CollisionKilledCount] as [CollisionKilledCount_Match],
         t.[CollisionKilledCount],
         CASE
-            WHEN t.[CollisionKilledCount] is not null AND [etl].IsType(t.[CollisionKilledCount], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
+            WHEN t.[CollisionKilledCount] is not null AND [dbo].IsType(t.[CollisionKilledCount], ''tinyint'') = 0 THEN ''Conversion to tinyint failed''
         END AS [CollisionKilledCount_Error],
         ROW_NUMBER() OVER (
             PARTITION BY
@@ -525,7 +516,7 @@ BEGIN TRY
             *
         FROM (
         -- this matches the data rows
-        SELECT * from etl.NYPD_Vehicle_Raw WHERE [row] LIKE ''[0-9][0-9][0-9];%''
+        SELECT * from %SourceSchema%.%System%_%Source%_Raw WHERE [row] LIKE ''[0-9][0-9][0-9];%''
         ) src
         ORDER BY
             _id ASC
@@ -547,7 +538,7 @@ BEGIN TRY
                 [match],
                 ROW_NUMBER() OVER (ORDER BY [index] ASC) AS idx
             FROM
-                [etl].Splitter(ISNULL(forcedMaterializationTrick.[row], ''''), N''(.*?);[0-9]{4}([0-9]{9})[^;]*;(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);'')
+                [dbo].Splitter(ISNULL(forcedMaterializationTrick.[row], ''''), N''(.*?);[0-9]{4}([0-9]{9})[^;]*;(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);'')
         ) s
         PIVOT (
             MAX([match]) FOR idx IN ([1], [2], [3], [4], [5], [6], [7], [8], [9], [10])
@@ -571,10 +562,10 @@ BEGIN TRY
             [CollisionKilledCount] AS [CollisionKilledCount]
     ) t;
     ');
-    IF Object_ID('etl.NYPD_Vehicle_CollisionMetadata_Split', 'V') IS NOT NULL
-    DROP VIEW [etl].[NYPD_Vehicle_CollisionMetadata_Split];
+    IF Object_ID('dbo.%Source%_CollisionMetadata_Split', 'V') IS NOT NULL
+    DROP VIEW [dbo].[%Source%_CollisionMetadata_Split];
     EXEC('
-    CREATE VIEW [etl].[NYPD_Vehicle_CollisionMetadata_Split]
+    CREATE VIEW [dbo].[%Source%_CollisionMetadata_Split]
     AS
     SELECT
         t._id,
@@ -584,17 +575,17 @@ BEGIN TRY
         m.[month] as [month_Match],
         t.[month],
         CASE
-            WHEN t.[month] is not null AND [etl].IsType(t.[month], ''varchar(42)'') = 0 THEN ''Conversion to varchar(42) failed''
+            WHEN t.[month] is not null AND [dbo].IsType(t.[month], ''varchar(42)'') = 0 THEN ''Conversion to varchar(42) failed''
         END AS [month_Error],
         m.[year] as [year_Match],
         t.[year],
         CASE
-            WHEN t.[year] is not null AND [etl].IsType(t.[year], ''smallint'') = 0 THEN ''Conversion to smallint failed''
+            WHEN t.[year] is not null AND [dbo].IsType(t.[year], ''smallint'') = 0 THEN ''Conversion to smallint failed''
         END AS [year_Error],
         m.[notes] as [notes_Match],
         t.[notes],
         CASE
-            WHEN t.[notes] is not null AND [etl].IsType(t.[notes], ''varchar(max)'') = 0 THEN ''Conversion to varchar(max) failed''
+            WHEN t.[notes] is not null AND [dbo].IsType(t.[notes], ''varchar(max)'') = 0 THEN ''Conversion to varchar(max) failed''
         END AS [notes_Error]
     FROM (
         SELECT TOP(2147483647)
@@ -612,7 +603,7 @@ BEGIN TRY
                     SELECT
                         *
                     FROM
-                        etl.NYPD_Vehicle_Raw
+                        %SourceSchema%.%System%_%Source%_Raw
                     WHERE
                         [row] NOT LIKE ''[0-9][0-9][0-9];%''
             ) src
@@ -626,7 +617,7 @@ BEGIN TRY
                     SELECT
                         *
                     FROM
-                        etl.NYPD_Vehicle_Raw
+                        %SourceSchema%.%System%_%Source%_Raw
                     WHERE
                         [row] NOT LIKE ''[0-9][0-9][0-9];%''
             ) src
@@ -648,7 +639,7 @@ BEGIN TRY
                 [match],
                 ROW_NUMBER() OVER (ORDER BY [index] ASC) AS idx
             FROM
-                [etl].Splitter(ISNULL(forcedMaterializationTrick.[row], ''''), N''(?=.*?(\w+)\s+[0-9]{4})?(?=.*?\w+\s+([0-9]{4}))?(?=.*?NOTES[^:]*:(.*))?'')
+                [dbo].Splitter(ISNULL(forcedMaterializationTrick.[row], ''''), N''(?=.*?(\w+)\s+[0-9]{4})?(?=.*?\w+\s+([0-9]{4}))?(?=.*?NOTES[^:]*:(.*))?'')
         ) s
         PIVOT (
             MAX([match]) FOR idx IN ([1], [2], [3])
@@ -687,11 +678,11 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_CreateErrorViews', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_CreateErrorViews];
+IF Object_ID('dbo.%Source%_CreateErrorViews', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_CreateErrorViews];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_CreateErrorViews
+-- Procedure: %Source%_CreateErrorViews
 --
 -- The created error views can be used to find rows that have errors of
 -- the following kinds: 
@@ -704,13 +695,13 @@ GO
 -- These errors occur when a primary key is defined and duplicates of
 -- that key is found in the tables.
 --
--- Create: NYPD_Vehicle_Collision_Error
--- Create: NYPD_Vehicle_CollisionMetadata_Error
+-- Create: %Source%_Collision_Error
+-- Create: %Source%_CollisionMetadata_Error
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_CreateErrorViews] (
+CREATE PROCEDURE [dbo].[%Source%_CreateErrorViews] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -724,22 +715,22 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_CreateInsertView',
+    @name = '%Source%_CreateInsertView',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Collision_Error', 'V') IS NOT NULL
-    DROP VIEW [etl].[NYPD_Vehicle_Collision_Error];
+    IF Object_ID('dbo.%Source%_Collision_Error', 'V') IS NOT NULL
+    DROP VIEW [dbo].[%Source%_Collision_Error];
     EXEC('
-    CREATE VIEW [etl].[NYPD_Vehicle_Collision_Error] 
+    CREATE VIEW [dbo].[%Source%_Collision_Error] 
     AS
     SELECT
         *
     FROM
-        [etl].[NYPD_Vehicle_Collision_Split]
+        [dbo].[%Source%_Collision_Split]
     WHERE
         measureTime_Duplicate > 0
     OR
@@ -763,15 +754,15 @@ BEGIN TRY
     OR
         [CollisionKilledCount_Error] is not null;
     ');
-    IF Object_ID('etl.NYPD_Vehicle_CollisionMetadata_Error', 'V') IS NOT NULL
-    DROP VIEW [etl].[NYPD_Vehicle_CollisionMetadata_Error];
+    IF Object_ID('dbo.%Source%_CollisionMetadata_Error', 'V') IS NOT NULL
+    DROP VIEW [dbo].[%Source%_CollisionMetadata_Error];
     EXEC('
-    CREATE VIEW [etl].[NYPD_Vehicle_CollisionMetadata_Error] 
+    CREATE VIEW [dbo].[%Source%_CollisionMetadata_Error] 
     AS
     SELECT
         *
     FROM
-        [etl].[NYPD_Vehicle_CollisionMetadata_Split]
+        [dbo].[%Source%_CollisionMetadata_Split]
     WHERE
         [month_Error] is not null
     OR
@@ -801,11 +792,11 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_CreateTypedTables', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_CreateTypedTables];
+IF Object_ID('dbo.%Source%_CreateTypedTables', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_CreateTypedTables];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_CreateTypedTables
+-- Procedure: %Source%_CreateTypedTables
 --
 -- The typed tables hold the data that make it through the process
 -- without errors. Columns here have the data types defined in the
@@ -814,13 +805,13 @@ GO
 -- Metadata columns, such as _id, can be used to backtrack from
 -- a value to the actual row from where it came.
 --
--- Create: NYPD_Vehicle_Collision_Typed
--- Create: NYPD_Vehicle_CollisionMetadata_Typed
+-- Create: %Source%_Collision_Typed
+-- Create: %Source%_CollisionMetadata_Typed
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_CreateTypedTables] (
+CREATE PROCEDURE [dbo].[%Source%_CreateTypedTables] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -834,16 +825,16 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_CreateTypedTables',
+    @name = '%Source%_CreateTypedTables',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Collision_Typed', 'U') IS NOT NULL
-    DROP TABLE [etl].[NYPD_Vehicle_Collision_Typed];
-    CREATE TABLE [etl].[NYPD_Vehicle_Collision_Typed] (
+    IF Object_ID('dbo.%Source%_Collision_Typed', 'U') IS NOT NULL
+    DROP TABLE [dbo].[%Source%_Collision_Typed];
+    CREATE TABLE [dbo].[%Source%_Collision_Typed] (
         _id int not null,
         _file AS metadata_CO_ID, -- keep an alias for backwards compatibility
         metadata_CO_ID int not null,
@@ -861,9 +852,9 @@ BEGIN TRY
         [CollisionInjuredCount] tinyint null,
         [CollisionKilledCount] tinyint null
     );
-    IF Object_ID('etl.NYPD_Vehicle_CollisionMetadata_Typed', 'U') IS NOT NULL
-    DROP TABLE [etl].[NYPD_Vehicle_CollisionMetadata_Typed];
-    CREATE TABLE [etl].[NYPD_Vehicle_CollisionMetadata_Typed] (
+    IF Object_ID('dbo.%Source%_CollisionMetadata_Typed', 'U') IS NOT NULL
+    DROP TABLE [dbo].[%Source%_CollisionMetadata_Typed];
+    CREATE TABLE [dbo].[%Source%_CollisionMetadata_Typed] (
         _id int not null,
         _file AS metadata_CO_ID, -- keep an alias for backwards compatibility
         metadata_CO_ID int not null,
@@ -913,23 +904,23 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_SplitRawIntoTyped', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_SplitRawIntoTyped];
+IF Object_ID('dbo.%Source%_SplitRawIntoTyped', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_SplitRawIntoTyped];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_SplitRawIntoTyped
+-- Procedure: %Source%_SplitRawIntoTyped
 --
 -- This procedure loads data from the 'Split' views into the 'Typed'
 -- tables, with the condition that data must conform to the given
 -- data types and have no duplicates for defined keys.
 --
--- Load: NYPD_Vehicle_Collision_Split into NYPD_Vehicle_Collision_Typed
--- Load: NYPD_Vehicle_CollisionMetadata_Split into NYPD_Vehicle_CollisionMetadata_Typed
+-- Load: %Source%_Collision_Split into %Source%_Collision_Typed
+-- Load: %Source%_CollisionMetadata_Split into %Source%_CollisionMetadata_Typed
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_SplitRawIntoTyped] (
+CREATE PROCEDURE [dbo].[%Source%_SplitRawIntoTyped] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -946,25 +937,25 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_SplitRawIntoTyped',
+    @name = '%Source%_SplitRawIntoTyped',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Collision_Typed', 'U') IS NOT NULL
+    IF Object_ID('dbo.%Source%_Collision_Typed', 'U') IS NOT NULL
     BEGIN
 EXEC Stage.metadata._WorkSourceToTarget
     @OP_ID = @operationsId OUTPUT,
     @WO_ID = @workId, 
-    @sourceName = 'NYPD_Vehicle_Collision_Split', 
-    @targetName = 'NYPD_Vehicle_Collision_Typed', 
+    @sourceName = '%Source%_Collision_Split', 
+    @targetName = '%Source%_Collision_Typed', 
     @sourceType = 'View', 
     @targetType = 'Table', 
     @sourceCreated = DEFAULT,
     @targetCreated = DEFAULT;
-    INSERT INTO [etl].[NYPD_Vehicle_Collision_Typed] (
+    INSERT INTO [dbo].[%Source%_Collision_Typed] (
         _id,
         metadata_CO_ID,
         metadata_JB_ID,
@@ -994,7 +985,7 @@ EXEC Stage.metadata._WorkSourceToTarget
         [CollisionInjuredCount],
         [CollisionKilledCount]
     FROM
-        [etl].[NYPD_Vehicle_Collision_Split]
+        [dbo].[%Source%_Collision_Split]
     WHERE
         measureTime_Duplicate = 0
     SET @insert = @insert + @@ROWCOUNT;
@@ -1007,7 +998,7 @@ EXEC Stage.metadata._WorkSourceToTarget
         WHERE
             JB_AID_Job_AgentJobId = @agentJobId
     ), 0);
-    UPDATE [etl].[NYPD_Vehicle_Collision_Typed]
+    UPDATE [dbo].[%Source%_Collision_Typed]
     SET
       metadata_JB_ID = @JB_ID
     WHERE
@@ -1015,18 +1006,18 @@ EXEC Stage.metadata._WorkSourceToTarget
     SET @updates = @@ROWCOUNT;
     EXEC Stage.metadata._WorkSetUpdates @workId, @operationsId, @updates;
     END
-    IF Object_ID('etl.NYPD_Vehicle_CollisionMetadata_Typed', 'U') IS NOT NULL
+    IF Object_ID('dbo.%Source%_CollisionMetadata_Typed', 'U') IS NOT NULL
     BEGIN
 EXEC Stage.metadata._WorkSourceToTarget
     @OP_ID = @operationsId OUTPUT,
     @WO_ID = @workId, 
-    @sourceName = 'NYPD_Vehicle_CollisionMetadata_Split', 
-    @targetName = 'NYPD_Vehicle_CollisionMetadata_Typed', 
+    @sourceName = '%Source%_CollisionMetadata_Split', 
+    @targetName = '%Source%_CollisionMetadata_Typed', 
     @sourceType = 'View', 
     @targetType = 'Table', 
     @sourceCreated = DEFAULT,
     @targetCreated = DEFAULT;
-    INSERT INTO [etl].[NYPD_Vehicle_CollisionMetadata_Typed] (
+    INSERT INTO [dbo].[%Source%_CollisionMetadata_Typed] (
         _id,
         metadata_CO_ID,
         metadata_JB_ID,
@@ -1042,7 +1033,7 @@ EXEC Stage.metadata._WorkSourceToTarget
         [year],
         [notes]
     FROM
-        [etl].[NYPD_Vehicle_CollisionMetadata_Split]
+        [dbo].[%Source%_CollisionMetadata_Split]
     WHERE
         [month_Error] is null
     AND
@@ -1059,7 +1050,7 @@ EXEC Stage.metadata._WorkSourceToTarget
         WHERE
             JB_AID_Job_AgentJobId = @agentJobId
     ), 0);
-    UPDATE [etl].[NYPD_Vehicle_CollisionMetadata_Typed]
+    UPDATE [dbo].[%Source%_CollisionMetadata_Typed]
     SET
       metadata_JB_ID = @JB_ID
     WHERE
@@ -1089,11 +1080,11 @@ BEGIN CATCH
 END CATCH
 END
 GO
-IF Object_ID('etl.NYPD_Vehicle_AddKeysToTyped', 'P') IS NOT NULL
-DROP PROCEDURE [etl].[NYPD_Vehicle_AddKeysToTyped];
+IF Object_ID('dbo.%Source%_AddKeysToTyped', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[%Source%_AddKeysToTyped];
 GO
 --------------------------------------------------------------------------
--- Procedure: NYPD_Vehicle_AddKeysToTyped
+-- Procedure: %Source%_AddKeysToTyped
 --
 -- This procedure adds keys defined in the source xml definition to the 
 -- typed staging tables. Keys boost performance when loading is made 
@@ -1101,15 +1092,15 @@ GO
 -- matches the key composition. Primary keys also guarantee uniquness
 -- among its values.
 --
--- Table: NYPD_Vehicle_Collision_Typed
+-- Table: %Source%_Collision_Typed
 -- Key: IntersectingStreet (as primary key)
 -- Key: CrossStreet (as primary key)
 -- Key: CollisionOrder (as primary key)
 --
--- Generated: Mon May 2 11:10:30 UTC+0200 2016 by e-lronnback
--- From: TSE-9B50TY1 in the CORPNET domain
+-- Generated: Fri Mar 11 13:01:07 UTC+0800 2016 by rfrasier
+-- From: HKWTR130 in the AD domain
 --------------------------------------------------------------------------
-CREATE PROCEDURE [etl].[NYPD_Vehicle_AddKeysToTyped] (
+CREATE PROCEDURE [dbo].[%Source%_AddKeysToTyped] (
     @agentJobId uniqueidentifier = null,
     @agentStepId smallint = null
 )
@@ -1123,17 +1114,17 @@ DECLARE @theErrorMessage varchar(555);
 DECLARE @theErrorSeverity int;
 DECLARE @theErrorState int;
 EXEC Stage.metadata._WorkStarting
-    @configurationName = 'Vehicle', 
+    @configurationName = '%Source%', 
     @configurationType = 'Source', 
     @WO_ID = @workId OUTPUT, 
-    @name = 'NYPD_Vehicle_AddKeysToTyped',
+    @name = '%Source%_AddKeysToTyped',
     @agentStepId = @agentStepId,
     @agentJobId = @agentJobId
 BEGIN TRY
-    IF Object_ID('etl.NYPD_Vehicle_Collision_Typed', 'U') IS NOT NULL
-    ALTER TABLE [etl].[NYPD_Vehicle_Collision_Typed]
+    IF Object_ID('dbo.%Source%_Collision_Typed', 'U') IS NOT NULL
+    ALTER TABLE [dbo].[%Source%_Collision_Typed]
     ADD
-        CONSTRAINT [etl_measureTime_NYPD_Vehicle_Collision_Typed] primary key (
+        CONSTRAINT [dbo_measureTime_%Source%_Collision_Typed] primary key (
             [IntersectingStreet],
             [CrossStreet],
             [CollisionOrder]
@@ -1162,11 +1153,11 @@ END
 GO
 -- The source definition used when generating the above
 DECLARE @xml XML = N'
-<source name="Vehicle" codepage="ACP" datafiletype="char" fieldterminator="\r\n" rowlength="1000" split="regex" firstrow="1">
+<source name="%Source%" codepage="ACP" datafiletype="char" fieldterminator="\r\n" rowlength="1000" split="regex" firstrow="1">
 	<description>http://www.nyc.gov/html/nypd/html/traffic_reports/motor_vehicle_collision_data.shtml</description>
 	<part name="Collision" nulls="" typeCheck="false" keyCheck="true">
         -- this matches the data rows
-        SELECT * from etl.NYPD_Vehicle_Raw WHERE [row] LIKE ''[0-9][0-9][0-9];%''
+        SELECT * from %SourceSchema%.%System%_%Source%_Raw WHERE [row] LIKE ''[0-9][0-9][0-9];%''
         <term name="OccurrencePrecinctCode" delimiter=";" format="int"/>
 		<term name="CollisionID" pattern="[0-9]{4}([0-9]{9})[^;]*;" format="int"/>
 		<term name="CollisionKey" delimiter=";" format="int"/>
@@ -1196,7 +1187,7 @@ DECLARE @xml XML = N'
                     SELECT
                         *
                     FROM
-                        etl.NYPD_Vehicle_Raw
+                        %SourceSchema%.%System%_%Source%_Raw
                     WHERE
                         [row] NOT LIKE ''[0-9][0-9][0-9];%''
             ) src
@@ -1210,7 +1201,7 @@ DECLARE @xml XML = N'
                     SELECT
                         *
                     FROM
-                        etl.NYPD_Vehicle_Raw
+                        %SourceSchema%.%System%_%Source%_Raw
                     WHERE
                         [row] NOT LIKE ''[0-9][0-9][0-9];%''
             ) src
