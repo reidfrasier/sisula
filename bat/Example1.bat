@@ -1,10 +1,10 @@
 @ECHO OFF
 SET SisulaPath=N:\My Documents\Sisula\sisula-ETL-0.0.2
+SET DataPath=D:\Sisula ETL
 SET SisulaPathDrive=%SisulaPath:~0,2%
 SET ConfigPath=%SisulaPath%\config
 SET ConfigName=%~n0
 SET DirectivePath=%SisulaPath%\directive
-SET DataPath=D:\Sisula ETL
 SET DataPathDrive=%DataPath:~0,2%
 
 ECHO -------------------------------------------------------------------

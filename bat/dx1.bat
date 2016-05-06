@@ -9,10 +9,10 @@ REM       - DatasetName: the name of the dataset folder in the data
 REM                      path (note: there can be more than one
 REM                      configuration for a single dataset)
 REM -------------------------------------------------------------------
-SET ConfigName=%~n0
 SET DatasetName=dataexplorers
 SET DataPath=D:\ETL\Sisula
 SET SisulaPath=N:\My Documents\Sisula\sisula-ETL-0.0.2
+SET ConfigName=%~n0
 SET SisulaPathDrive=%SisulaPath:~0,2%
 SET ConfigPath=%SisulaPath%\config
 SET DirectivePath=%SisulaPath%\directive
