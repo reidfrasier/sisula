@@ -1,16 +1,16 @@
 @ECHO OFF
 
-echo  * Setting variables found in:
-echo    %~f0
+ECHO  * Setting variables found in:
+ECHO      %~f0
 
 REM -------------------------------------------------------------------
 REM   Change the following variables to reflect your desired settings
 REM -------------------------------------------------------------------
-set System=NYPD
-set Source=Vehicle
-set TargetDatabase=Traffic
-set TargetSchema=dbo
-set SourceDatabase=Stage
-set SourceSchema=etl
-set MetaDatabase=Stage
+SET System=NYPD
+SET Source=Vehicle
+SET TargetDatabase=Development
+SET TargetSchema=target
+SET SourceDatabase=Development
+SET SourceSchema=source
+SET MetaDatabase=Development
 REM -------------------------------------------------------------------

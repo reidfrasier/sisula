@@ -1,19 +1,29 @@
 <!--
-    rowlength    can be specified as an integer number, but defaults to 'max'
-    split        specifies with which method rows should be split into columns
-                 "bulk" splits already at bulk insert time but imposes
-                 the limit that only one part can be present and only
-                 delimiter and size can be used.
-                 "regex" will read whole rows into a raw table and then perform
-                 the split using a CLR splitter, which allows for many parts in
-                 the same file, and pattern can be used to match the resulting
-                 column value.
+
+  FIELDS:
+
+    rowlength          Can be specified as an integer number, but defaults to "max" if not specified.
+
+    split              Specifies with which method rows should be split into columns
+                       "bulk" splits already at bulk insert time but imposes
+                       the limit that only one part can be present and only
+                       delimiter and size can be used.
+                       "regex" will read whole rows into a raw table and then perform
+                       the split using a CLR splitter, which allows for many parts in
+                       the same file, and pattern can be used to match the resulting
+                       column value.
+
+    fieldterminator    Specifies the field terminator to be user for char and widechar data files.
+                       The default field terminator is \t (tab character). For the "regex" split
+                       we need it set to "\r\n" for Windows and "\n" for Unix files so that the
+                       entire rows are inserted into the database before the Sisula splitter
+                       splits them into columns using "regex".
  -->
 <source name="%Source%" codepage="ACP" datafiletype="char" fieldterminator="\r\n" rowlength="1000" split="regex" firstrow="1">
 	<description>http://www.nyc.gov/html/nypd/html/traffic_reports/motor_vehicle_collision_data.shtml</description>
     <part name="Collision" nulls="" typeCheck="false" keyCheck="true">
         -- this matches the data rows
-        SELECT * from %SourceSchema%.%System%_%Source%_Raw WHERE [row] LIKE '[0-9][0-9][0-9];%'
+        SELECT * FROM %SourceSchema%.%System%_%Source%_Raw WHERE [row] LIKE '[0-9][0-9][0-9];%'
         <term name="OccurrencePrecinctCode" delimiter=";" format="int"/>
         <!-- only capture a part of the string -->
         <term name="CollisionID" pattern="[0-9]{4}([0-9]{9})[^;]*;" format="int"/>
@@ -42,9 +52,9 @@
         FROM (
           SELECT
             metadata_CO_ID,
-						MIN(metadata_JB_ID) as metadata_JB_ID,
-            MIN(_id) as _id,
-            MIN(_timestamp) as _timestamp
+						MIN(metadata_JB_ID) AS metadata_JB_ID,
+            MIN(_id) AS _id,
+            MIN(_timestamp) AS _timestamp
           FROM (
                     SELECT
                         *
@@ -78,10 +88,10 @@
             but that is only possible for deterministic calculations
         -->
         <calculation name="changedAt" format="date" persisted="false">
-            dateadd(day, -1,
-            dateadd(month, 1,
-            cast([year] as char(4)) +
-            case left([month], 3)
+            DATEADD(day, -1,
+            DATEADD(month, 1,
+            CAST([year] AS char(4)) +
+            CASE LEFT([month], 3)
                 when 'Jan' then '01'
                 when 'Feb' then '02'
                 when 'Mar' then '03'
@@ -91,14 +101,14 @@
                 when 'Jul' then '07'
                 when 'Aug' then '08'
                 when 'Sep' then '09'
-                when 'Okt' then '10'
+                when 'Oct' then '10'
                 when 'Nov' then '11'
                 when 'Dec' then '12'
-            end +
+            END +
             '01'))
         </calculation>
         <!--
-            positive lookahead with an optional number of preceeding characters leading
+            positive lookahead with an optional number of preceding characters leading
             up to the string to match, after which we capture everything. In the capture
             we replace small bullets (formerly line breaks) with spaces.
         -->
