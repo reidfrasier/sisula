@@ -38,7 +38,7 @@ IF NOT EXISTS (
 BEGIN TRY -- using Microsoft.SQLServer.Types version 13 (2016)
 	CREATE ASSEMBLY ${S_SCHEMA}$Utilities
 	AUTHORIZATION dbo
-	FROM '${VARIABLES.SisulaPath}$\code\\Utilities2016.dll'
+	FROM '${VARIABLES.SisulaPath}$\\code\\Utilities2016.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2016 was installed.'
 END TRY
@@ -57,7 +57,7 @@ IF NOT EXISTS (
 BEGIN TRY -- using Microsoft.SQLServer.Types version 12 (2014)
 	CREATE ASSEMBLY ${S_SCHEMA}$Utilities
 	AUTHORIZATION dbo
-	FROM '${VARIABLES.SisulaPath}$\code\\Utilities2014.dll'
+	FROM '${VARIABLES.SisulaPath}$\\code\\Utilities2014.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2014 was installed.'
 END TRY
@@ -76,7 +76,7 @@ IF NOT EXISTS (
 BEGIN TRY -- using Microsoft.SQLServer.Types version 11 (2012)
 	CREATE ASSEMBLY ${S_SCHEMA}$Utilities
 	AUTHORIZATION dbo
-	FROM '${VARIABLES.SisulaPath}$\code\\Utilities2012.dll'
+	FROM '${VARIABLES.SisulaPath}$\\code\\Utilities2012.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2012 was installed.'
 END TRY
@@ -95,7 +95,7 @@ IF NOT EXISTS (
 BEGIN TRY -- using Microsoft.SQLServer.Types version 10 (2008)
 	CREATE ASSEMBLY ${S_SCHEMA}$Utilities
 	AUTHORIZATION dbo
-	FROM '${VARIABLES.SisulaPath}$\code\\Utilities2008.dll'
+	FROM '${VARIABLES.SisulaPath}$\\code\\Utilities2008.dll'
 	WITH PERMISSION_SET = SAFE;
 	PRINT 'The .NET CLR for SQL Server 2008 was installed.'
 END TRY
