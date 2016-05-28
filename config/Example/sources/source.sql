@@ -538,7 +538,7 @@ BEGIN TRY
 		FROM (
             SELECT
                 [match],
-                ROW_NUMBER() OVER (ORDER BY [index] ASC) AS idx
+                ROW_NUMBER() OVER (ORDER BY (SELECT NULL) ASC) AS idx
             FROM
                 [source].Splitter(ISNULL(forcedMaterializationTrick.[row], ''''), N''(.*?);[0-9]{4}([0-9]{9})[^;]*;(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);(.*?);'')
         ) s
@@ -639,7 +639,7 @@ BEGIN TRY
 		FROM (
             SELECT
                 [match],
-                ROW_NUMBER() OVER (ORDER BY [index] ASC) AS idx
+                ROW_NUMBER() OVER (ORDER BY (SELECT NULL) ASC) AS idx
             FROM
                 [source].Splitter(ISNULL(forcedMaterializationTrick.[row], ''''), N''(?=.*?(\w+)\s+[0-9]{4})?(?=.*?\w+\s+([0-9]{4}))?(?=.*?NOTES[^:]*:(.*))?'')
         ) s
