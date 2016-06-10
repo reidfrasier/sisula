@@ -116,7 +116,10 @@ EXEC sp_add_jobstep
     @step_name          = 'Log success of job',
     @subsystem          = 'TSQL',
     @database_name      = '${METADATABASE}$',
-    @command            = 'EXEC metadata._JobStopping @name = ''$job.name'', @status = ''Success''',
+    @command            = '
+        EXEC metadata._JobStopping @name = ''$job.name'', @status = ''Success''
+        EXEC metadata._SendEmailReport @agentStepId = $$(ESCAPE_NONE(STEPID)), @agentJobId = $$(ESCAPE_NONE(JOBID))'
+    ',
     @on_success_action  = 1; -- quit with success
 
 EXEC sp_add_jobstep
@@ -124,7 +127,10 @@ EXEC sp_add_jobstep
     @step_name          = 'Log failure of job',
     @subsystem          = 'TSQL',
     @database_name      = '${METADATABASE}$',
-    @command            = 'EXEC metadata._JobStopping @name = ''$job.name'', @status = ''Failure''',
+    @command            = '
+        EXEC metadata._JobStopping @name = ''$job.name'', @status = ''Failure''
+        EXEC metadata._SendEmailReport @agentStepId = $$(ESCAPE_NONE(STEPID)), @agentJobId = $$(ESCAPE_NONE(JOBID))'
+    ',
     @on_success_action  = 2; -- quit with failure
 ~*/
         id = 2;
