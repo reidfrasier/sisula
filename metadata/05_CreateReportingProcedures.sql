@@ -1,11 +1,17 @@
+/*
+             CREATE PROCEDURES FOR REPORTING
+*/
 --------------------------- Send Email Report ---------------------------
 IF Object_Id('metadata._SendEmailReport', 'P') IS NOT NULL
-  DROP PROCEDURE metadata._WorkStarting;
+  DROP PROCEDURE metadata._SendEmailReport;
 GO
 
 CREATE PROCEDURE metadata._SendEmailReport (
-  @agentStepId smallint = NULL ,
-  @agentJobId uniqueidentifier = NULL
+  @agentStepId smallint = NULL,
+  @agentJobId uniqueidentifier = NULL,
+  @emailRecipientList nvarchar(max),
+  @emailSubject nvarchar(255),
+  @tableTitle nvarchar(255)
 )
 AS
   BEGIN
@@ -14,7 +20,7 @@ AS
     --DECLARE @now datetimeoffset(7) = SYSDATETIMEOFFSET()
     --DECLARE @startOfDay datetime2(7) = DATETIMEFROMPARTS(DATEPART(year, @now), DATEPART(month, @now), 8, 0, 0 ,0, 0)
     SET @tableHTML =
-    N'<H1>SQL Server Agent Job Status Report</H1>' +
+    N'<H1>' + @tableTitle + N'</H1>' +
     N'<table border="1">' +
     N'<tr><th>JobId</th>' +
     N'<th>JobStartDateTime</th>' +
@@ -175,8 +181,8 @@ AS
     --send email
     EXEC msdb.dbo.sp_send_dbmail
       @profile_name = 'APP_DBMAIL_PROFILE',
-      @recipients = 'reid.frasier@mlp.com',
-      @subject = 'SQL Server Agent Job Status Report',
+      @recipients = @emailRecipientList,
+      @subject = @emailSubject,
       @body = @tableHTML,
       @body_format = 'HTML';
   END
