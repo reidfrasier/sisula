@@ -69,18 +69,6 @@ EXEC sp_add_jobserver
     @job_name   = '$job.name';
 
 ~*/
-    if(METADATA) {
-/*~
-EXEC sp_add_jobstep
-    @job_name           = '$job.name',
-    @step_name          = 'Log starting of job',
-    @step_id            = 1,
-    @subsystem          = 'TSQL',
-    @database_name      = '${METADATABASE}$',
-    @command            = 'EXEC metadata._JobStarting @workflowName = ''$workflow.name'', @jobName = ''$job.name'', @agentJobId = $$(ESCAPE_NONE(JOBID))',
-    @on_success_action  = 3; -- go to the next step
-~*/
-    }
     while(step = job.nextStep()) {
 /*~
 EXEC sp_add_jobstep
@@ -107,45 +95,6 @@ EXEC sp_add_jobstep
     -- mandatory parameters below and optional ones above this line
     @job_name       = '$job.name',
     @step_name      = '$step.name';
-~*/
-    }
-    if(METADATA) {
-/*~
-EXEC sp_add_jobstep
-    @job_name           = '$job.name',
-    @step_name          = 'Log success of job',
-    @subsystem          = 'TSQL',
-    @database_name      = '${METADATABASE}$',
-    @command            = 'EXEC metadata._JobStopping @name = ''$job.name'', @status = ''Success''',
-    @on_success_action  = 1; -- quit with success
-
-EXEC sp_add_jobstep
-    @job_name           = '$job.name',
-    @step_name          = 'Log failure of job',
-    @subsystem          = 'TSQL',
-    @database_name      = '${METADATABASE}$',
-    @command            = 'EXEC metadata._JobStopping @name = ''$job.name'', @status = ''Failure''',
-    @on_success_action  = 2; -- quit with failure
-~*/
-        id = 2;
-        lastId = job.jobsteps.length;
-        while(step = job.nextStep()) {
-/*~
-EXEC sp_update_jobstep
-    @job_name           = '$job.name',
-    @step_id            = ${(id++)}$,
-    -- ensure logging when any step fails
-    @on_fail_action     = 4, -- go to step with id
-    @on_fail_step_id    = ${(lastId + 3)}$;
-~*/
-        }
-/*~
-EXEC sp_update_jobstep
-    @job_name           = '$job.name',
-    @step_id            = ${(lastId + 1)}$,
-    -- ensure logging when last step succeeds
-    @on_success_action  = 4, -- go to step with id
-    @on_success_step_id = ${(lastId + 2)}$;
 ~*/
     }
 /*~
