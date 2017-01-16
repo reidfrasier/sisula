@@ -104,7 +104,7 @@ BEGIN CATCH
 END CATCH
 GO
 
-CREATE FUNCTION [$S_SCHEMA].Splitter(@row AS nvarchar(max), @pattern AS nvarchar(4000))
+CREATE FUNCTION [$S_SCHEMA].Splitter(@row AS nvarchar(max), @pattern AS nvarchar(max))
 RETURNS TABLE (
 	[match] nvarchar(max),
 	[index] int
